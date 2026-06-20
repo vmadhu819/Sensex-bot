@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<meta name="theme-color" content="#00c076">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="SensexBot">
+<link rel="manifest" href="manifest.json">
+<title>SENSEX Signal Bot</title>
+<style>
+:root{--bg:#0b0d11;--s:#13161d;--s2:#1a1f2b;--border:#252b3b;--text:#e8eaf0;--m:#6b7280;--green:#00c076;--gd:rgba(0,192,118,.12);--red:#ff4560;--rd:rgba(255,69,96,.12);--amber:#f59e0b;--ad:rgba(245,158,11,.13);--blue:#3b82f6;--cyan:#06b6d4;--purple:#a855f7;}
+*{box-sizing:border-box;margin:0;padding:0;-webkit-tap-highlight-color:transparent;}
+body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;background:var(--bg);color:var(--text);font-size:14px;min-height:100vh;min-height:100dvh;overflow-x:hidden;}
+/* HEADER */
+.hdr{background:var(--s);border-bottom:1px solid var(--border);padding:12px 16px;display:flex;align-items:center;justify-content:space-between;position:sticky;top:0;z-index:100;padding-top:max(12px,env(safe-area-inset-top));}
+.logo{font-size:17px;font-weight:800;}.logo span{color:var(--green);}
+.live-pill{display:flex;align-items:center;gap:4px;font-size:11px;padding:3px 10px;border-radius:20px;font-weight:600;}
+.live-pill.on{background:var(--gd);color:var(--green);}
+.live-pill.off{background:rgba(107,114,128,.1);color:var(--m);}
+.ldot{width:6px;height:6px;border-radius:50%;background:currentColor;animation:blink 1.4s infinite;}
+@keyframes blink{0%,100%{opacity:1;}50%{opacity:.2;}}
+/* TABS */
+.tab-bar{background:var(--s);border-bottom:1px solid var(--border);display:none;position:sticky;top:52px;z-index:99;}
+.tab-b{flex:1;padding:12px;background:none;border:none;border-bottom:2px solid transparent;color:var(--m);font-size:13px;font-weight:600;cursor:pointer;font-family:inherit;transition:all .15s;text-align:center;}
+.tab-b.active{color:var(--green);border-bottom-color:var(--green);}
+/* SCREENS */
+.screen{display:none;padding:14px 16px;padding-bottom:max(14px,env(safe-area-inset-bottom));}
+.screen.show{display:block;}
+/* LOGIN */
+.card{background:var(--s);border:1px solid var(--border);border-radius:14px;padding:20px;}
+.card-title{font-size:16px;font-weight:700;margin-bottom:3px;}
+.card-sub{font-size:12px;color:var(--m);margin-bottom:18px;line-height:1.6;}
+.field{margin-bottom:12px;}
+.field label{display:block;font-size:11px;color:var(--m);margin-bottom:4px;text-transform:uppercase;letter-spacing:.05em;font-weight:500;}
+.field input{width:100%;padding:12px 14px;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;outline:none;-webkit-appearance:none;}
+.field input:focus{border-color:var(--green);}
+.field input[type=password]{letter-spacing:3px;}
+.hint{font-size:11px;color:var(--m);margin-top:4px;line-height:1.5;}
+.btn{width:100%;padding:14px;border-radius:12px;border:none;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;transition:all .15s;margin-bottom:8px;-webkit-appearance:none;}
+.btn-g{background:var(--green);color:#000;}.btn-g:active{background:#00a864;}
+.btn-g:disabled{background:#1a3a2a;color:var(--m);}
+.btn-gray{background:var(--s2);color:var(--m);border:1px solid var(--border);}
+.err-box{background:var(--rd);border:1px solid rgba(255,69,96,.25);border-radius:8px;padding:10px 12px;font-size:12px;color:var(--red);margin-top:8px;display:none;line-height:1.5;}
+.err-box.show{display:block;}
+/* WAITING */
+.wait-card{background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:20px;margin-top:12px;text-align:center;}
+.wait-title{font-size:15px;font-weight:600;color:var(--green);margin-bottom:10px;}
+.wait-steps{font-size:13px;color:var(--m);line-height:2.2;text-align:left;margin-bottom:14px;}
+.wait-steps strong{color:var(--text);}
+.spin{display:inline-block;width:20px;height:20px;border:2px solid rgba(0,192,118,.2);border-top-color:var(--green);border-radius:50%;animation:sp .7s linear infinite;vertical-align:middle;margin-right:6px;}
+@keyframes sp{to{transform:rotate(360deg);}}
+/* SIGNAL */
+.status{padding:10px 12px;border-radius:8px;font-size:12px;margin-bottom:12px;display:none;line-height:1.5;}
+.status.show{display:block;}
+.status.ok{background:var(--gd);color:var(--green);border:1px solid rgba(0,192,118,.2);}
+.status.err{background:var(--rd);color:var(--red);border:1px solid rgba(255,69,96,.2);}
+.status.warn{background:var(--ad);color:var(--amber);border:1px solid rgba(245,158,11,.2);}
+/* INDEX BAR */
+.idx-bar{display:flex;gap:6px;margin-bottom:12px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;}
+.idx-bar::-webkit-scrollbar{display:none;}
+.idx-b{padding:7px 14px;border-radius:20px;border:1px solid var(--border);background:var(--s2);color:var(--m);font-size:12px;font-weight:600;cursor:pointer;font-family:inherit;white-space:nowrap;-webkit-appearance:none;}
+.idx-b.active{background:var(--gd);border-color:var(--green);color:var(--green);}
+/* SIGNAL BOX */
+.sig-box{border-radius:12px;padding:16px;margin-bottom:12px;border:1px solid;}
+.sig-box.bull{background:var(--gd);border-color:rgba(0,192,118,.35);}
+.sig-box.bear{background:var(--rd);border-color:rgba(255,69,96,.35);}
+.sig-box.wait{background:var(--s2);border-color:var(--border);}
+.sig-action{font-size:24px;font-weight:800;margin-bottom:3px;}
+.sig-action.bull{color:var(--green);}.sig-action.bear{color:var(--red);}.sig-action.wait{color:var(--amber);}
+.sig-score{font-size:12px;color:var(--m);margin-bottom:6px;}
+.sig-reason{font-size:12px;color:var(--m);line-height:1.7;margin-bottom:12px;}
+.levels{display:grid;grid-template-columns:1fr 1fr;gap:6px;}
+.lvl{padding:8px 12px;border-radius:8px;font-size:12px;font-weight:600;text-align:center;}
+.lvl.e{background:rgba(0,192,118,.2);color:var(--green);}
+.lvl.s{background:rgba(255,69,96,.2);color:var(--red);}
+.lvl.t1{background:rgba(59,130,246,.2);color:var(--blue);}
+.lvl.t2{background:rgba(168,85,247,.2);color:var(--purple);}
+/* METRICS */
+.metrics{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;}
+.metric{background:var(--s);border:1px solid var(--border);border-radius:10px;padding:12px 14px;}
+.ml{font-size:10px;text-transform:uppercase;letter-spacing:.05em;color:var(--m);margin-bottom:5px;}
+.mv{font-size:18px;font-weight:700;}
+.ms{font-size:11px;color:var(--m);margin-top:2px;}
+/* VOL BAR */
+.vol-sec{background:var(--s);border:1px solid var(--border);border-radius:10px;padding:14px;margin-bottom:12px;}
+.vol-title{font-size:11px;color:var(--m);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em;}
+.vol-track{height:20px;background:var(--s2);border-radius:5px;overflow:hidden;margin-bottom:6px;}
+.vol-fill{height:100%;border-radius:5px;transition:width .6s;}
+.vol-scale{display:flex;justify-content:space-between;font-size:10px;color:var(--border);}
+.vol-read{font-size:13px;font-weight:600;margin-top:8px;}
+/* ACTIONS */
+.act-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;}
+.act-b{padding:16px;border-radius:12px;border:none;font-size:15px;font-weight:700;cursor:pointer;font-family:inherit;-webkit-appearance:none;}
+.act-buy{background:var(--green);color:#000;}
+.act-buy:active{background:#00a864;}
+.act-sell{background:var(--red);color:#fff;}
+.act-sell:active{background:#cc2040;}
+.act-refresh{background:var(--s2);color:var(--m);border:1px solid var(--border);width:100%;padding:12px;border-radius:10px;font-size:14px;font-weight:600;}
+/* ORDER FORM */
+.ord-form{background:var(--s2);border:1px solid var(--border);border-radius:12px;padding:16px;margin-bottom:12px;display:none;}
+.ord-form.show{display:block;}
+.ord-title{font-size:14px;font-weight:600;margin-bottom:12px;}
+.ord-title.buy{color:var(--green);}.ord-title.sell{color:var(--red);}
+.ord-btns{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:10px;}
+.ord-btns .btn{width:auto;margin:0;padding:12px;}
+.field select{width:100%;padding:12px 14px;background:var(--s2);border:1px solid var(--border);border-radius:10px;color:var(--text);font-size:14px;outline:none;font-family:inherit;-webkit-appearance:none;}
+/* LOG */
+.log-sec{background:var(--s);border:1px solid var(--border);border-radius:10px;padding:12px;margin-bottom:12px;}
+.log-title{font-size:11px;color:var(--m);margin-bottom:8px;text-transform:uppercase;letter-spacing:.04em;}
+.log-row{display:flex;align-items:center;gap:8px;padding:8px 0;border-bottom:1px solid rgba(255,255,255,.04);font-size:12px;}
+.log-row:last-child{border:none;}
+/* OPTIONS */
+.opt-topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:10px;}
+.opt-name{font-size:15px;font-weight:700;}
+.opt-spot{font-size:12px;color:var(--m);margin-top:2px;}
+.ref-btn{padding:8px 14px;background:var(--s2);border:1px solid var(--border);color:var(--m);border-radius:8px;font-size:12px;cursor:pointer;font-family:inherit;}
+.exp-legend{font-size:10px;color:var(--m);margin-bottom:6px;}
+.exp-row{display:flex;gap:6px;margin-bottom:10px;overflow-x:auto;padding-bottom:2px;scrollbar-width:none;align-items:center;}
+.exp-row::-webkit-scrollbar{display:none;}
+.exp-lbl{font-size:11px;color:var(--m);white-space:nowrap;}
+.exp-b{padding:6px 11px;border-radius:8px;border:1px solid var(--border);background:var(--s2);color:var(--m);font-size:11px;cursor:pointer;font-family:inherit;font-weight:600;white-space:nowrap;-webkit-appearance:none;}
+.exp-b.active{background:var(--gd);border-color:var(--green);color:var(--green);}
+.exp-b.monthly-exp{border-color:rgba(245,158,11,.4);color:#b45309;}
+.exp-b.monthly-exp.active{background:var(--ad);border-color:var(--amber);color:var(--amber);}
+.pcr-strip{display:grid;grid-template-columns:repeat(4,1fr);gap:6px;background:var(--s);border:1px solid var(--border);border-radius:10px;padding:10px 12px;margin-bottom:10px;}
+.pcr-item{text-align:center;}
+.pcr-lbl{font-size:9px;color:var(--m);text-transform:uppercase;margin-bottom:3px;}
+.pcr-val{font-size:14px;font-weight:700;}
+.chain-scroll{overflow-x:auto;-webkit-overflow-scrolling:touch;}
+.chain-tbl{width:100%;border-collapse:collapse;font-size:10px;min-width:600px;}
+.chain-tbl th{padding:5px 4px;text-align:center;color:var(--m);border-bottom:1px solid var(--border);font-size:9px;text-transform:uppercase;white-space:nowrap;}
+.chain-tbl td{padding:6px 4px;text-align:center;white-space:nowrap;border-bottom:1px solid rgba(255,255,255,.04);}
+.ce-hdr{background:rgba(0,192,118,.08);color:var(--green);font-size:9px;font-weight:700;padding:4px;letter-spacing:.04em;}
+.pe-hdr{background:rgba(255,69,96,.08);color:var(--red);font-size:9px;font-weight:700;padding:4px;letter-spacing:.04em;}
+.strk{background:var(--s2)!important;font-weight:700;color:var(--text);font-size:11px;}
+.atm-row td{background:rgba(245,158,11,.07)!important;}
+.atm-row .strk{color:var(--amber);background:rgba(245,158,11,.15)!important;}
+.ce-v{color:var(--green);}.pe-v{color:var(--red);}.gk{color:var(--m);}
+.iv-hi{color:var(--amber)!important;}
+.oi-b-wrap{display:inline-block;width:24px;height:3px;background:var(--border);border-radius:2px;vertical-align:middle;margin-left:2px;}
+.oi-b{height:100%;border-radius:2px;}
+.opt-msg{text-align:center;padding:24px;color:var(--m);font-size:13px;}
+.opt-err{background:var(--rd);border:1px solid rgba(255,69,96,.2);border-radius:8px;padding:10px;font-size:12px;color:var(--red);margin-bottom:10px;display:none;}
+.opt-err.show{display:block;}
+/* BOTTOM NAV */
+.bottom-nav{position:fixed;bottom:0;left:0;right:0;background:var(--s);border-top:1px solid var(--border);display:none;padding:8px 0;padding-bottom:max(8px,env(safe-area-inset-bottom));z-index:100;}
+.nav-items{display:flex;}
+.nav-item{flex:1;display:flex;flex-direction:column;align-items:center;gap:3px;padding:4px 0;cursor:pointer;color:var(--m);font-size:10px;font-weight:500;-webkit-appearance:none;background:none;border:none;font-family:inherit;}
+.nav-item.active{color:var(--green);}
+.nav-icon{font-size:20px;}
+.content-wrap{padding-bottom:70px;}
+/* MISC */
+.disclaimer{font-size:10px;color:var(--m);text-align:center;margin-top:6px;padding-bottom:4px;}
+</style>
+</head>
+<body>
+
+<!-- HEADER -->
+<div class="hdr">
+  <div class="logo">📊 <span>SENSEX</span> Bot</div>
+  <span class="live-pill off" id="livePill">● Offline</span>
+</div>
+
+<!-- ══ LOGIN ══ -->
+<div class="screen show" id="loginScreen">
+<div style="padding:14px 16px;">
+  <div class="card">
+    <div class="card-title">🔐 Connect Zerodha</div>
+    <div class="card-sub">Enter once — saved on your phone. Auto-logs in every day.</div>
+    <div class="field"><label>API Key</label><input type="text" id="apiKey" placeholder="from kite.trade/developers" autocomplete="off"></div>
+    <div class="field"><label>API Secret</label><input type="password" id="apiSecret" placeholder="from kite.trade/developers"></div>
+    <div class="field"><label>User ID</label><input type="text" id="userId" placeholder="e.g. CUK446" autocomplete="off" style="text-transform:uppercase;"></div>
+    <div class="field"><label>Password</label><input type="password" id="password" placeholder="Zerodha password"></div>
+    <div class="field">
+      <label>TOTP Secret Key</label>
+      <input type="text" id="totpKey" placeholder="BASE32 key from Kite TOTP setup" autocomplete="off">
+      <div class="hint">Kite → Profile → Password & Security → External TOTP → "Can't scan? Copy key"</div>
+    </div>
+    <button class="btn btn-g" id="loginBtn">⚡ Connect &amp; Get Signals</button>
+    <button class="btn btn-gray" id="loadSavedBtn">Load Saved Credentials</button>
+    <div class="err-box" id="loginErr"></div>
+  </div>
+</div>
+</div>
+
+<!-- ══ WAITING ══ -->
+<div class="screen" id="waitingScreen">
+<div style="padding:14px 16px;">
+  <div class="wait-card">
+    <div class="wait-title">🔐 Login Tab Opened!</div>
+    <div class="wait-steps">
+      <strong>1.</strong> A Zerodha login tab opened<br>
+      <strong>2.</strong> Enter User ID &amp; Password<br>
+      <strong>3.</strong> Enter OTP from Microsoft Authenticator<br>
+      <strong>4.</strong> After login, come back here ✅
+    </div>
+    <div style="color:var(--m);font-size:13px;margin-bottom:14px;"><span class="spin"></span>Waiting for login...</div>
+    <button class="btn btn-gray" id="cancelWaitBtn">✕ Cancel</button>
+  </div>
+</div>
+</div>
+
+<!-- ══ CONTENT (Signals + Options) ══ -->
+<div class="screen" id="mainScreen">
+<div class="content-wrap">
+
+  <!-- SIGNALS TAB -->
+  <div id="signalsTab" style="padding:14px 16px;">
+    <div class="status" id="statusBar"></div>
+
+    <!-- INDEX SELECTOR -->
+    <div class="idx-bar">
+      <button class="idx-b active" id="idxBtn0" data-key="265:BSE:SENSEX">📊 SENSEX</button>
+      <button class="idx-b" id="idxBtn1" data-key="256265:NSE:NIFTY 50">📈 Nifty 50</button>
+      <button class="idx-b" id="idxBtn2" data-key="260105:NSE:BANK NIFTY">🏦 Bank Nifty</button>
+      <button class="idx-b" id="idxBtn3" data-key="257801:NSE:GIFT NIFTY">🌏 GIFT Nifty</button>
+    </div>
+
+    <!-- SIGNAL BOX -->
+    <div class="sig-box wait" id="sigBox">
+      <div class="sig-action wait" id="sigAction">—</div>
+      <div class="sig-score" id="sigScore">—</div>
+      <div class="sig-reason" id="sigReason">—</div>
+      <div class="levels" id="sigLevels"></div>
+    </div>
+
+    <!-- METRICS -->
+    <div class="metrics" id="metricsGrid"></div>
+
+    <!-- VOLUME -->
+    <div class="vol-sec">
+      <div class="vol-title">Volume Strength</div>
+      <div class="vol-track"><div class="vol-fill" id="volFill" style="width:0%;background:#374151;"></div></div>
+      <div class="vol-scale"><span>Low</span><span>Avg</span><span>High</span><span>Spike</span></div>
+      <div class="vol-read" id="volRead" style="color:var(--m);">—</div>
+    </div>
+
+    <!-- ORDER FORM -->
+    <div class="ord-form" id="ordForm">
+      <div class="ord-title" id="ordTitle">Place Order</div>
+      <div class="field"><label>Instrument</label><input type="text" id="ordSym" placeholder="e.g. SENSEX25JUNFUT"></div>
+      <div class="field"><label>Quantity</label><input type="number" id="ordQty" value="1" min="1"></div>
+      <div class="field"><label>Exchange</label>
+        <select id="ordExch">
+          <option value="BFO">BFO (SENSEX Futures)</option>
+          <option value="NFO">NFO (Nifty/BankNifty)</option>
+          <option value="NSE">NSE</option>
+          <option value="BSE">BSE</option>
+        </select>
+      </div>
+      <div class="ord-btns">
+        <button class="btn btn-g" id="confirmOrdBtn">✅ Confirm</button>
+        <button class="btn btn-gray" id="cancelOrdBtn">Cancel</button>
+      </div>
+    </div>
+
+    <!-- ACTION BUTTONS -->
+    <div class="act-grid">
+      <button class="act-b act-buy" id="buyBtn">▲ BUY</button>
+      <button class="act-b act-sell" id="sellBtn">▼ SELL</button>
+    </div>
+    <button class="act-b act-refresh" id="refreshBtn">⟳ Refresh Signals</button>
+
+    <!-- LOG -->
+    <div class="log-sec" style="margin-top:10px;">
+      <div class="log-title">Last 6 Candles</div>
+      <div id="logRows"></div>
+    </div>
+    <div class="disclaimer">Not SEBI advice. Use stop losses. Trade at own risk.</div>
+  </div>
+
+  <!-- OPTIONS TAB -->
+  <div id="optionsTab" style="padding:14px 16px;display:none;">
+    <div class="opt-topbar">
+      <div>
+        <div class="opt-name" id="optName">Options Chain</div>
+        <div class="opt-spot" id="optSpot">—</div>
+      </div>
+      <button class="ref-btn" id="optRefBtn">⟳</button>
+    </div>
+    <div class="opt-err" id="optErr"></div>
+    <div class="exp-legend">
+      <span style="border:1px solid var(--border);padding:1px 5px;border-radius:3px;margin-right:4px;">W</span>Weekly
+      <span style="border:1px solid rgba(245,158,11,.4);padding:1px 5px;border-radius:3px;color:#b45309;margin-left:8px;margin-right:4px;">M</span>Monthly
+    </div>
+    <div class="exp-row" id="expRow"><span class="exp-lbl">Expiry:</span></div>
+    <div class="pcr-strip" id="pcrStrip" style="display:none;">
+      <div class="pcr-item"><div class="pcr-lbl">PCR</div><div class="pcr-val" id="pcrVal">—</div></div>
+      <div class="pcr-item"><div class="pcr-lbl">Max Pain</div><div class="pcr-val" id="maxPainVal" style="color:var(--amber);font-size:11px;">—</div></div>
+      <div class="pcr-item"><div class="pcr-lbl">ATM</div><div class="pcr-val" id="atmVal" style="color:var(--blue);font-size:12px;">—</div></div>
+      <div class="pcr-item"><div class="pcr-lbl">Bias</div><div class="pcr-val" id="biasVal" style="font-size:11px;">—</div></div>
+    </div>
+    <div class="chain-scroll" id="chainWrap">
+      <div class="opt-msg">Select index &amp; connect to view options chain.</div>
+    </div>
+  </div>
+
+</div>
+</div>
+
+<!-- BOTTOM NAV -->
+<div class="bottom-nav" id="bottomNav">
+  <div class="nav-items">
+    <button class="nav-item active" id="navSignals">
+      <span class="nav-icon">📊</span>
+      <span>Signals</span>
+    </button>
+    <button class="nav-item" id="navOptions">
+      <span class="nav-icon">📋</span>
+      <span>Options</span>
+    </button>
+    <button class="nav-item" id="navLogout">
+      <span class="nav-icon">🔓</span>
+      <span>Logout</span>
+    </button>
+  </div>
+</div>
+
+<script src="app.js"></script>
+<script>
+  // Register service worker
+  if ('serviceWorker' in navigator) {
+    navigator.serviceWorker.register('sw.js').catch(()=>{});
+  }
+</script>
+</body>
+</html>
