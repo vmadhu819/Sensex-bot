@@ -272,11 +272,45 @@ async function processToken(reqToken){
   const c=ld('sb_c');if(!c)return false;
   try{
     const cs=await sha256(c.ak+reqToken+c.as);
-    const r=await fetch('https://api.kite.trade/session/token',{method:'POST',headers:{'X-Kite-Version':'3','Content-Type':'application/x-www-form-urlencoded'},body:`api_key=${encodeURIComponent(c.ak)}&request_token=${encodeURIComponent(reqToken)}&checksum=${encodeURIComponent(cs)}`});
-    const d=await r.json();
-    if(d.status==='success'){saveTok(d.data.access_token,c.ak);G={ak:c.ak,as:c.as,t:d.data.access_token};return true;}
+    const body=`api_key=${encodeURIComponent(c.ak)}&request_token=${encodeURIComponent(reqToken)}&checksum=${encodeURIComponent(cs)}`;
+    const hdrs={'X-Kite-Version':'3','Content-Type':'application/x-www-form-urlencoded'};
+    
+    // Try direct first, then CORS proxies
+    const attempts=[
+      ()=>fetch('https://api.kite.trade/session/token',{method:'POST',headers:hdrs,body}),
+      ()=>fetch('https://corsproxy.io/?'+encodeURIComponent('https://api.kite.trade/session/token'),{method:'POST',headers:hdrs,body}),
+      ()=>fetch('https://api.allorigins.win/raw?url='+encodeURIComponent('https://api.kite.trade/session/token'),{method:'POST',headers:hdrs,body}),
+    ];
+    
+    for(const attempt of attempts){
+      try{
+        const r=await attempt();
+        if(!r.ok)continue;
+        const d=await r.json();
+        if(d.status==='success'){
+          saveTok(d.data.access_token,c.ak);
+          G={ak:c.ak,as:c.as,t:d.data.access_token};
+          return true;
+        }
+      }catch(e){continue;}
+    }
   }catch(e){}
   return false;
+}
+
+// Also fix API calls to use CORS proxy if direct fails
+async function kiteGet(url){
+  const hdrs={'X-Kite-Version':'3','Authorization':`token ${G.ak}:${G.t}`};
+  try{const r=await fetch(url,{headers:hdrs});if(r.ok)return await r.json();}catch(e){}
+  // Try proxy
+  const r=await fetch('https://corsproxy.io/?'+encodeURIComponent(url),{headers:hdrs});
+  return await r.json();
+}
+async function kitePost(url,bodyStr){
+  const hdrs={'X-Kite-Version':'3','Authorization':`token ${G.ak}:${G.t}`,'Content-Type':'application/x-www-form-urlencoded'};
+  try{const r=await fetch(url,{method:'POST',headers:hdrs,body:bodyStr});if(r.ok)return await r.json();}catch(e){}
+  const r=await fetch('https://corsproxy.io/?'+encodeURIComponent(url),{method:'POST',headers:hdrs,body:bodyStr});
+  return await r.json();
 }
 
 // Indicators
@@ -328,10 +362,8 @@ async function fetchAndShow(){
     const idx=gIdx(),now=new Date(),from=new Date(now);from.setHours(idx.sH,idx.sM,0,0);
     const fd=d=>d.toISOString().replace('T',' ').slice(0,19);
     const url=`https://api.kite.trade/instruments/historical/${idx.token}/5minute?from=${encodeURIComponent(fd(from))}&to=${encodeURIComponent(fd(now))}&exchange=${idx.exchange}`;
-    const r=await fetch(url,{headers:{'X-Kite-Version':'3','Authorization':`token ${G.ak}:${G.t}`}});
-    if(r.status===403||r.status===401)throw new Error('TOKEN_EXPIRED');
-    if(!r.ok){const e=await r.json().catch(()=>({}));throw new Error(e.message||'Error');}
-    const data=await r.json();
+    const r2=await kiteGet(url);if(!r2.data?.candles)throw new Error(r2.message||'No data');const data=r2;
+    
     const cs=(data.data?.candles||[]).map(c=>({time:c[0],o:c[1],h:c[2],l:c[3],c:c[4],v:c[5]})).filter(c=>c.v>0);
     if(!cs||cs.length<5){setSt(`${gIdx().name}: No data. Opens at ${gIdx().name==='GIFT Nifty'?'6:00 AM':'9:15 AM'} Mon-Fri`,'warn');setLive(false);return;}
     const{res,avg}=compute(cs);G.cs=cs;G.res=res;G.avg=avg;renderSig(cs,res,avg);setSt(`✅ ${gIdx().name}: ${cs.length} candles — ${new Date().toLocaleTimeString()}`,'ok');
