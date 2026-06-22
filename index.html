@@ -166,7 +166,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
     <button class="ib on" data-k="265:BSE:SENSEX">📊 SENSEX</button>
     <button class="ib" data-k="256265:NSE:NIFTY 50">📈 Nifty 50</button>
     <button class="ib" data-k="260105:NSE:BANK NIFTY">🏦 Bank Nifty</button>
-    <button class="ib" data-k="257801:NSE:GIFT NIFTY">🌏 GIFT Nifty</button>
+    
   </div>
   <div class="sb wait" id="sigBox">
     <div class="sa wait" id="sigAct">—</div>
@@ -222,7 +222,7 @@ body{font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;backgrou
 const $=id=>document.getElementById(id);
 let G={},oSide=null,pTimer=null,curIdx='265:BSE:SENSEX',optInst=null,optExp=null;
 
-const IDX={'265:BSE:SENSEX':{token:265,exchange:'BSE',name:'SENSEX',color:'#00c076',sH:9,sM:15},'256265:NSE:NIFTY 50':{token:256265,exchange:'NSE',name:'Nifty 50',color:'#3b82f6',sH:9,sM:15},'260105:NSE:BANK NIFTY':{token:260105,exchange:'NSE',name:'Bank Nifty',color:'#a855f7',sH:9,sM:15},'257801:NSE:GIFT NIFTY':{token:257801,exchange:'NSE_IFSC',name:'GIFT Nifty',color:'#f59e0b',sH:6,sM:0}};
+const IDX={'265:BSE:SENSEX':{token:265,exchange:'BSE',name:'SENSEX',color:'#00c076',sH:9,sM:15},'256265:NSE:NIFTY 50':{token:256265,exchange:'NSE',name:'Nifty 50',color:'#3b82f6',sH:9,sM:15},'260105:NSE:BANK NIFTY':{token:260105,exchange:'NSE',name:'Bank Nifty',color:'#a855f7',sH:9,sM:15}};
 const OI={'SENSEX':{ex:'BSE_FO',sym:'SENSEX',sd:100,ls:10},'Nifty 50':{ex:'NFO',sym:'NIFTY',sd:50,ls:50},'Bank Nifty':{ex:'NFO',sym:'BANKNIFTY',sd:100,ls:15}};
 
 const fmt=n=>{try{return parseInt(n).toLocaleString('en-IN');}catch{return String(n);}};
@@ -359,7 +359,24 @@ function renderSig(cs,res,avg){
 async function fetchAndShow(){
   if(!G.t)return;
   try{
-    const idx=gIdx(),now=new Date(),from=new Date(now);from.setHours(idx.sH,idx.sM,0,0);
+    const idx=gIdx(),now=new Date(),from=new Date(now);
+    from.setHours(idx.sH,idx.sM,0,0);
+    
+    // Check if market has opened yet
+    if(now < from){
+      const openTime=idx.name==='GIFT Nifty'?'6:00 AM':idx.name==='SENSEX'||idx.name==='Nifty 50'||idx.name==='Bank Nifty'?'9:15 AM':'9:15 AM';
+      setSt(`⏰ ${idx.name} opens at ${openTime}. Come back then for live signals!`,'warn');
+      setLive(false);
+      return;
+    }
+    
+    // Also check if weekend
+    const day=now.getDay();
+    if(day===0||day===6){
+      setSt(`📅 Market closed today (${day===0?'Sunday':'Saturday'}). Opens Monday 9:15 AM.`,'warn');
+      setLive(false);
+      return;
+    }
     const fd=d=>d.toISOString().replace('T',' ').slice(0,19);
     const url=`https://api.kite.trade/instruments/historical/${idx.token}/5minute?from=${encodeURIComponent(fd(from))}&to=${encodeURIComponent(fd(now))}&exchange=${idx.exchange}`;
     const r2=await kiteGet(url);if(!r2.data?.candles)throw new Error(r2.message||'No data');const data=r2;
